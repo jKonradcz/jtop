@@ -17,30 +17,44 @@ int main() {
     }
 
     // allocate mem for file of text in file
-    char* line = NULL;
+    char* pid = NULL;
     size_t line_buffer = 0;
 
     // loop through the list
-    while (getline(&line, &line_buffer, file) != -1) {
+    while (getline(&pid, &line_buffer, file) != -1) {
 
         // check each line and each part of the line if name contains number
-        for (char* point = line; *point != '\0'; point++)
+        for (char* point = pid; *point != '\0'; point++) {
             if (isdigit(*point)) {
+                
+                // remove whitespace from the pid
+                pid[strcspn(pid, "\r\n")] = '\0';
 
-                // placeholder, for now just print the line
-                printf("%s", line);
+                // alloc mem for the procpath
+                int size = snprintf(NULL, 0, "cat /proc/%s/cmdline", pid);
+                char* procpath = (char*)malloc(size + 1);
+
+                // craft the cmd and path
+                snprintf(procpath, size + 1, "cat /proc/%s/cmdline", pid);
+
+                // 
+                system(procpath);
+                printf("\n");
+                
                 // break once the above is done once (i.e. printing the line)
                 break;
-        }
+            }
 
                 // enter each folder, read the cmdline, skip if empty
+                // system("cat /proc/%s", pid);
 
                 // write the pid + cmdline into the output file
             
+        }
     }
 
     // free memory, close the list, rename it to list-old.txt
-    free(line);
+    free(pid);
     fclose(file);
     system("mv list-new.txt list-old.txt");
 
