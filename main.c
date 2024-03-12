@@ -3,11 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
+typedef struct {
+    unsigned int pid;
+    char* cmdline;
+} Proc;
+
 int main() {
     // grab the list of files in /proc
     system("ls /proc > list-new.txt");
-
-    // open new output file
 
     // open the list 
     FILE *file = fopen("list-new.txt", "r");
@@ -20,6 +23,15 @@ int main() {
     char* pid = NULL;
     size_t line_buffer = 0;
 
+    // prep the process array
+    size_t array_size = 10;
+
+    // allocate mem for the array
+    Proc* array = malloc(array_size * sizeof(Proc));
+
+    // number of processes
+    size_t proc_number = 0;
+
     // loop through the list
     while (getline(&pid, &line_buffer, file) != -1) {
 
@@ -31,32 +43,82 @@ int main() {
                 pid[strcspn(pid, "\r\n")] = '\0';
 
                 // alloc mem for the procpath
-                int size = snprintf(NULL, 0, "cat /proc/%s/cmdline", pid);
+                int size = snprintf(NULL, 0, "/proc/%s/cmdline", pid);
                 char* procpath = (char*)malloc(size + 1);
+                snprintf(procpath, size + 1, "/proc/%s/cmdline", pid);
 
-                // craft the cmd and path
-                snprintf(procpath, size + 1, "cat /proc/%s/cmdline", pid);
+                // open the cmdline file (process path/name)
+                FILE *cmdline_file = fopen(procpath, "r");
+                if (cmdline_file == NULL) {
+                    // if empty, skip this PID
+                    free(procpath);
+                    continue;
+                }
 
-                // 
-                system(procpath);
-                printf("\n");
-                
-                // break once the above is done once (i.e. printing the line)
+                // read the cmdline (process name)
+                char* cmdline = NULL;
+                size_t cmdline_buffer = 0;
+                getline(&cmdline, &cmdline_buffer, cmdline_file);
+                fclose(cmdline_file);
+
+                // find the end of the path and remove the rest (arguments etc) 
+                int is_valid = 1;
+                for (char* c = cmdline; *c != '\0'; c++) {
+                    if (*c == ' ') {
+                        *c = '\0';
+                        break;
+                    }
+
+                    // and includes only ascii characters (doesnt work right now) < < < < < < <
+                        if (*c < 0 || *c > 127) {
+                        is_valid = 0;
+                        break;
+                    }
+                }
+
+                // check if the cmdline is not empty 
+                if (cmdline[0] == '\0') {
+                    free(cmdline);
+                    free(procpath);
+                    continue;
+                }
+
+                // check if there is space in the array
+                if (proc_number == array_size) {
+                    // if no space, double the size of the array
+                    array_size *= 2;
+                    array = realloc(array, array_size * sizeof(Proc));
+                }
+
+                // add the proc pair to the array
+                array[proc_number].pid = atoi(pid);
+                array[proc_number].cmdline = cmdline;  
+                proc_number++;
+
+                free(procpath);
                 break;
             }
-
-                // enter each folder, read the cmdline, skip if empty
-                // system("cat /proc/%s", pid);
-
-                // write the pid + cmdline into the output file
-            
         }
     }
 
-    // free memory, close the list, rename it to list-old.txt
-    free(pid);
-    fclose(file);
-    system("mv list-new.txt list-old.txt");
+    // open the output file
+    FILE *output_file = fopen("output.txt", "w");
+    if (output_file == NULL) {
+        printf("Could not open output file.\n");
+        return 1;
+    }
 
-    return 0; 
+    // write down the array
+    for (size_t i = 0; i < proc_number; i++) {
+        fprintf(output_file, "%u %s\n", array[i].pid, array[i].cmdline);
+    }
+    fclose(output_file);
+
+    // free the array
+    for (size_t i = 0; i < proc_number; i++) {
+        free(array[i].cmdline);
+    }
+    free(array);
+
+    return 0;
 }
