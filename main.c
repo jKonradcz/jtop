@@ -6,7 +6,9 @@
 typedef struct {
     unsigned int pid;
     char* cmdline;
-} Proc;
+    // TODO: add memory field
+    // TODO: add cpu field
+} proc;
 
 int main() {
     // grab the list of files in /proc
@@ -27,7 +29,7 @@ int main() {
     size_t array_size = 10;
 
     // allocate mem for the array
-    Proc* array = malloc(array_size * sizeof(Proc));
+    proc* array = malloc(array_size * sizeof(proc));
 
     // number of processes
     size_t proc_number = 0;
@@ -61,6 +63,13 @@ int main() {
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
+                // check if the cmdline is not empty 
+                if (cmdline[0] == '\0') {
+                    free(cmdline);
+                    free(procpath);
+                    continue;
+                }
+
                 // find the end of the path and remove the rest (arguments etc) 
                 int is_valid = 1;
                 for (char* c = cmdline; *c != '\0'; c++) {
@@ -70,24 +79,20 @@ int main() {
                     }
 
                     // and includes only ascii characters (doesnt work right now) < < < < < < <
-                        if (*c < 0 || *c > 127) {
+                    if (*c < 0 || *c > 127) {
                         is_valid = 0;
                         break;
                     }
                 }
 
-                // check if the cmdline is not empty 
-                if (cmdline[0] == '\0') {
-                    free(cmdline);
-                    free(procpath);
-                    continue;
-                }
+                // TODO: read the /proc/[pid]/statm file to get the memory usage / possible cpu too
+                // TODO: assign the values to the proc struct fields
 
                 // check if there is space in the array
                 if (proc_number == array_size) {
                     // if no space, double the size of the array
                     array_size *= 2;
-                    array = realloc(array, array_size * sizeof(Proc));
+                    array = realloc(array, array_size * sizeof(proc));
                 }
 
                 // add the proc pair to the array
@@ -100,6 +105,8 @@ int main() {
             }
         }
     }
+
+    // TODO: sort the array by memory usage
 
     // open the output file
     FILE *output_file = fopen("output.txt", "w");
