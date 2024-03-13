@@ -63,8 +63,8 @@ int main() {
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
-                // check if the cmdline is not empty 
-                if (cmdline[0] == '\0') {
+                // check if the cmdline is not empty and starts with a '/'
+                if (cmdline[0] == '\0' || cmdline[0] != '/') {
                     free(cmdline);
                     free(procpath);
                     continue;
@@ -75,12 +75,6 @@ int main() {
                 for (char* c = cmdline; *c != '\0'; c++) {
                     if (*c == ' ') {
                         *c = '\0';
-                        break;
-                    }
-
-                    // and includes only ascii characters (doesnt work right now) < < < < < < <
-                    if (*c < 0 || *c > 127) {
-                        is_valid = 0;
                         break;
                     }
                 }
