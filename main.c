@@ -1,24 +1,28 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <stdio.h>          // for the printf, fopen, fclose, getline, fprintf functions
+#include <stdlib.h>         // for the malloc, realloc, free functions
+#include <string.h>         // for the strcspn function
+#include <ctype.h>          // for the isdigit function
+#include <unistd.h>         // for the sysconf function > page_size 
+#include <sys/sysinfo.h>    // for the sysinfo function > totalram 
 
 typedef struct {
     unsigned int pid;
     char* cmdline;
     unsigned long mem;
+    int mempercent;
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
 int main() {
     // grab the list of files in /proc
-    system("ls /proc > list-new.txt");
+    system("ls /proc > proclist.txt");
 
-    // TODO: grab the total memory of the system (#include <sys/sysinfo.h> then ~ totalram * mem_unit)
+    // grab the total memory of the system
+    struct sysinfo info;
+    sysinfo(&info); // saved in info.totalram, in bytes
 
     // open the list 
-    FILE *file = fopen("list-new.txt", "r");
+    FILE *file = fopen("proclist.txt", "r");
     if (file == NULL){
         printf("Trouble loading the /proc list.");
         return 1;
@@ -26,16 +30,16 @@ int main() {
 
     // allocate mem for file of text in file
     char* pid = NULL;
-    size_t line_buffer = 0;
+    size_t line_buffer = 0; // has to be in size_t, due to getline.. odd
 
     // prep the process array
-    size_t array_size = 10;
+    unsigned int array_size = 10;
 
     // allocate mem for the array
     proc* array = malloc(array_size * sizeof(proc));
 
     // number of processes
-    size_t proc_number = 0;
+    unsigned int proc_number = 0;
 
     // loop through the list of processes
     while (getline(&pid, &line_buffer, file) != -1) {
@@ -63,7 +67,7 @@ int main() {
 
                 // read the cmdline (process name)
                 char* cmdline = NULL;
-                size_t cmdline_buffer = 0;
+                size_t cmdline_buffer = 0; // same thing, size_t because of getline
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
@@ -104,12 +108,14 @@ int main() {
                 fclose(statm_file);
                 free(procpath);
 
-                // previously i used the "size" part of the statm, but that was most probably virt mem, not resident mem
+                // previously i used the "size" part of the statm, but that was most probably virt mem, not physical/resident mem
                 // to determine % of mem used, we need to know the total mem of the system and the "resident" from statm
-                // for now, i will just store the resident mem in Mb
+                // for now, i will just store the resident mem 
                 
                 unsigned long pagesize = sysconf(_SC_PAGESIZE);
-                memuse = (memuse * pagesize) / 1048576;
+                memuse = (memuse * pagesize); 
+
+                // TODO: calculate the percentage of memory used by the process
 
                 // check if there is space in the array
                 if (proc_number == array_size) {
@@ -118,10 +124,12 @@ int main() {
                     array = realloc(array, array_size * sizeof(proc));
                 }
 
-                // add the proc pair to the array
+                // add the proc values to the struct and array
                 array[proc_number].pid = atoi(pid);
                 array[proc_number].cmdline = cmdline;
-                array[proc_number].mem = memuse;  
+                array[proc_number].mem = memuse;
+                // TODO: add the mempercent value
+
                 proc_number++;
 
                 break;
@@ -129,13 +137,22 @@ int main() {
         }
     }
 
+    // close the proclist.txt
+    fclose(file);
+
     // TODO: sort the array by memory usage
+
     // for now, just print the total memory usage
-    unsigned long total_mem = 0;
-    for (size_t i = 0; i < proc_number; i++) {
-        total_mem += array[i].mem;
+    unsigned long memused = 0;
+    for (unsigned int i = 0; i < proc_number; i++) {
+        memused += array[i].mem;
     }
-    printf("Total memory usage: %luMb\n", total_mem);
+
+    // temporary printout of values
+    printf("Total memory usage: %luMb\n", memused / 1048576);
+    printf("Total memory: %lu Mb\n", info.totalram / 1048576);
+    int mempercent = (int)((memused * 100) / info.totalram); // TODO: use this calc in loop on each proc
+    printf("Use memory percentage: %d%%\n", mempercent);
 
     // open the output file
     FILE *output_file = fopen("output.txt", "w");
@@ -145,13 +162,13 @@ int main() {
     }
 
     // write down the array
-    for (size_t i = 0; i < proc_number; i++) {
-        fprintf(output_file, "%u %s %luMb\n", array[i].pid, array[i].cmdline, array[i].mem);
+    for (unsigned int i = 0; i < proc_number; i++) {
+        fprintf(output_file, "%u %s %lub\n", array[i].pid, array[i].cmdline, array[i].mem);
     }
     fclose(output_file);
 
     // free the array
-    for (size_t i = 0; i < proc_number; i++) {
+    for (unsigned int i = 0; i < proc_number; i++) {
         free(array[i].cmdline);
     }
     free(array);
