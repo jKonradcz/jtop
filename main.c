@@ -9,7 +9,7 @@ typedef struct {
     unsigned int pid;
     char* cmdline;
     unsigned long mem;
-    int mempercent;
+    float mempercent;
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
@@ -22,8 +22,8 @@ int main() {
     sysinfo(&info); // saved in info.totalram, in bytes
 
     // open the list 
-    FILE *file = fopen("proclist.txt", "r");
-    if (file == NULL){
+    FILE *input_file = fopen("proclist.txt", "r");
+    if (input_file == NULL){
         printf("Trouble loading the /proc list.");
         return 1;
     }
@@ -42,7 +42,7 @@ int main() {
     unsigned int proc_number = 0;
 
     // loop through the list of processes
-    while (getline(&pid, &line_buffer, file) != -1) {
+    while (getline(&pid, &line_buffer, input_file) != -1) {
 
         // check each line and each part of the line if name contains number
         for (char* point = pid; *point != '\0'; point++) {
@@ -115,7 +115,9 @@ int main() {
                 unsigned long pagesize = sysconf(_SC_PAGESIZE);
                 memuse = (memuse * pagesize); 
 
-                // TODO: calculate the percentage of memory used by the process
+                // calculate the percentage of memory used by the process
+
+                float mempercent = (float)((memuse * 100) / (float)(info.totalram * info.mem_unit)); // mem_unit to potentialy convert to bytes
 
                 // check if there is space in the array
                 if (proc_number == array_size) {
@@ -129,16 +131,17 @@ int main() {
                 array[proc_number].cmdline = cmdline;
                 array[proc_number].mem = memuse;
                 // TODO: add the mempercent value
+                array[proc_number].mempercent = mempercent;
 
                 proc_number++;
-
+                
                 break;
             }
         }
     }
 
     // close the proclist.txt
-    fclose(file);
+    fclose(input_file);
 
     // TODO: sort the array by memory usage
 
@@ -158,12 +161,17 @@ int main() {
     FILE *output_file = fopen("output.txt", "w");
     if (output_file == NULL) {
         printf("Could not open output file.\n");
+        for (unsigned int i = 0; i < proc_number; i++) {
+            free(array[i].cmdline);
+        }
+        free(array);
+        free(pid);
         return 1;
     }
 
-    // write down the array
+    // temporary solution to write down the array
     for (unsigned int i = 0; i < proc_number; i++) {
-        fprintf(output_file, "%u %s %lub\n", array[i].pid, array[i].cmdline, array[i].mem);
+        fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
     }
     fclose(output_file);
 
@@ -171,7 +179,12 @@ int main() {
     for (unsigned int i = 0; i < proc_number; i++) {
         free(array[i].cmdline);
     }
+
+    // cleanup
+    
+    system("rm proclist.txt"); // temporary solution to clean up after each run
     free(array);
+    free(pid); // free the buffer from getline()
 
     return 0;
 }
