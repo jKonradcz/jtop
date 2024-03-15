@@ -41,7 +41,7 @@ int main() {
     // number of processes
     unsigned int proc_number = 0;
 
-    // loop through the list of processes
+    // loop through the list, grab a line until there are none(-1)
     while (getline(&pid, &line_buffer, input_file) != -1) {
 
         // check each line and each part of the line if name contains number
@@ -95,7 +95,7 @@ int main() {
                 procpath = (char*)malloc(size + 1);
                 snprintf(procpath, size + 1, "/proc/%s/statm", pid);    /// procpath now contains the path to the statm file
                 
-                // TODO: read the /proc/[pid]/statm file to get the memory usage / possible cpu too
+                // read the /proc/[pid]/statm file to get the memory usage
                 FILE* statm_file = fopen(procpath, "r");
                 if (statm_file == NULL) {
                     // if empty, skip this PID
@@ -103,8 +103,9 @@ int main() {
                     continue;
                 }
                 // init the variables, the file includes many values, but we only need the second one
-                unsigned long memuse, value1, value2, value3, value4, value5, value6;
-                fscanf(statm_file, "%lu %lu %lu %lu %lu %lu %lu", &value1, &memuse, &value2, &value3, &value4, &value5, &value6);
+                float memuse;
+                unsigned long value1, value2, value3, value4, value5, value6;
+                fscanf(statm_file, "%lu %f %lu %lu %lu %lu %lu", &value1, &memuse, &value2, &value3, &value4, &value5, &value6);
                 fclose(statm_file);
                 free(procpath);
 
@@ -117,7 +118,7 @@ int main() {
 
                 // calculate the percentage of memory used by the process
 
-                float mempercent = (float)((memuse * 100) / (float)(info.totalram * info.mem_unit)); // mem_unit to potentialy convert to bytes
+                float mempercent = (memuse * 100) / (float)(info.totalram * info.mem_unit); // mem_unit to potentialy convert to bytes
 
                 // check if there is space in the array
                 if (proc_number == array_size) {
@@ -165,13 +166,15 @@ int main() {
             free(array[i].cmdline);
         }
         free(array);
-        free(pid);
+        free(pid); // free the buffer from getline()
         return 1;
     }
-
     // temporary solution to write down the array
     for (unsigned int i = 0; i < proc_number; i++) {
-        fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
+        // only print if mempercent is more than 1% 
+        if (array[i].mempercent > 1.0) { 
+            fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
+        }
     }
     fclose(output_file);
 
