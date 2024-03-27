@@ -1,6 +1,6 @@
 #include <stdio.h>          // for the printf, fopen, fclose, getline, fprintf functions
-#include <stdlib.h>         // for the malloc, realloc, free functions
-#include <string.h>         // for the strcspn function
+#include <stdlib.h>         // for the malloc, realloc, free, atoi functions and the qsort
+#include <string.h>         // for the strcspn, snprintf, strcmp functions 
 #include <ctype.h>          // for the isdigit function
 #include <unistd.h>         // for the sysconf function > page_size 
 #include <sys/sysinfo.h>    // for the sysinfo function > totalram 
@@ -13,7 +13,7 @@ typedef struct {
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
-// comparison function for qsort (StackOverflow magic, apparently efficient way to sort arrays https://stackoverflow.com/questions/3893937/sorting-an-array-in-c)
+// comparison function for qsort (StackOverflow magic, apparently efficient way to sort arrays https://stackoverflow.com/questions/3893937/sorting-an-array-in-c > https://en.cppreference.com/w/c/algorithm/qsort)
 // const void* as required by the qsort function
 int compare_proc_by_mem(const void* a, const void* b) {
     // typecast from void* to proc*
@@ -105,6 +105,8 @@ int main() {
                     }
                 }
 
+                // TODO: remove the path, keep only the process name (after the last /)
+
                 // we are done with the cmdline, free the path
                 free(procpath);
 
@@ -127,15 +129,13 @@ int main() {
                 fclose(statm_file);
                 free(procpath);
 
-                // previously i used the "size" part of the statm, but that was most probably virt mem, not physical/resident mem
-                // to determine % of mem used, we need to know the total mem of the system and the "resident" from statm
-                // for now, i will just store the resident mem 
-                
+                // get the page size from the system                
                 unsigned long pagesize = sysconf(_SC_PAGESIZE);
+
+                // convert the memory usage to bytes
                 memuse = (memuse * pagesize); 
 
                 // calculate the percentage of memory used by the process
-
                 float mempercent = (memuse * 100) / (float)(info.totalram * info.mem_unit); // mem_unit to potentialy convert to bytes
 
                 // check if there is space in the array
@@ -149,7 +149,6 @@ int main() {
                 array[proc_number].pid = atoi(pid);
                 array[proc_number].cmdline = cmdline;
                 array[proc_number].mem = memuse;
-                // TODO: add the mempercent value
                 array[proc_number].mempercent = mempercent;
 
                 proc_number++;
@@ -162,9 +161,7 @@ int main() {
     // close the proclist.txt
     fclose(input_file);
 
-    // TODO: compare the cmdline (process names), keep the one with the lowest PID
-
-    // qsort magic (start of the array, number of elements, size in memory of each element and the comparison function)
+    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)
     qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
 
     // for now, just print the total memory usage
