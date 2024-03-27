@@ -13,8 +13,26 @@ typedef struct {
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
+// comparison function for qsort (StackOverflow magic, apparently efficient way to sort arrays https://stackoverflow.com/questions/3893937/sorting-an-array-in-c)
+// const void* as required by the qsort function
+int compare_proc_by_mem(const void* a, const void* b) {
+    // typecast from void* to proc*
+    proc* proc_a = (proc*)a;
+    proc* proc_b = (proc*)b;
+    // comparison itself, with the return values -1 and 1 or 0 if equal
+    // reverted the order, as I want the largest procs first
+    if (proc_a->mem > proc_b->mem) {
+        return -1;
+    }
+    if (proc_a->mem < proc_b->mem) {
+        return 1;
+    }
+    return 0;
+}
+
 int main() {
     // grab the list of files in /proc
+    // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
 
     // grab the total memory of the system
@@ -44,7 +62,7 @@ int main() {
     // loop through the list, grab a line until there are none(-1)
     while (getline(&pid, &line_buffer, input_file) != -1) {
 
-        // check each line and each part of the line if name contains number
+        // check each line and each char in the line if name contains number
         for (char* point = pid; *point != '\0'; point++) {
             if (isdigit(*point)) {
                 
@@ -102,7 +120,7 @@ int main() {
                     free(procpath);
                     continue;
                 }
-                // init the variables, the file includes many values, but we only need the second one
+                // init the variables, the file includes many values, but we only need the second one (resident mem)
                 float memuse;
                 unsigned long value1, value2, value3, value4, value5, value6;
                 fscanf(statm_file, "%lu %f %lu %lu %lu %lu %lu", &value1, &memuse, &value2, &value3, &value4, &value5, &value6);
@@ -144,7 +162,10 @@ int main() {
     // close the proclist.txt
     fclose(input_file);
 
-    // TODO: sort the array by memory usage
+    // TODO: compare the cmdline (process names), keep the one with the lowest PID
+
+    // qsort magic (start of the array, number of elements, size in memory of each element and the comparison function)
+    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
 
     // for now, just print the total memory usage
     unsigned long memused = 0;
@@ -172,7 +193,7 @@ int main() {
     // temporary solution to write down the array
     for (unsigned int i = 0; i < proc_number; i++) {
         // only print if mempercent is more than 1% 
-        if (array[i].mempercent > 1.0) { 
+        if (array[i].mempercent > 0.5) { 
             fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
         }
     }
