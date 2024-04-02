@@ -13,7 +13,7 @@ typedef struct {
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
-// comparison function for qsort (StackOverflow magic, apparently efficient way to sort arrays https://stackoverflow.com/questions/3893937/sorting-an-array-in-c > https://en.cppreference.com/w/c/algorithm/qsort)
+// comparison function for qsort 
 // const void* as required by the qsort function
 int compare_proc_by_mem(const void* a, const void* b) {
     // typecast from void* to proc*
@@ -90,21 +90,26 @@ int main() {
                 fclose(cmdline_file);
 
                 // check if the cmdline is not empty and starts with a '/'
+                // this had to be removed due to emulated processes not starting with '/' but drive letters, which might differ
+                /*
                 if (cmdline[0] == '\0' || cmdline[0] != '/') {
                     // if empty or not containing a path, skip this PID
                     free(cmdline);
                     free(procpath);
                     continue;
                 }
+                */
 
                 // find the end of the path and remove the rest (arguments etc) 
+                // changed from ' ' to '-' as the emulated paths had spaces in them
+                
                 for (char* c = cmdline; *c != '\0'; c++) {
-                    if (*c == ' ') {
+                    if (*c == '-') {
                         *c = '\0';
                         break;
                     }
                 }
-
+                
                 // TODO: remove the path, keep only the process name (after the last /)
 
                 // we are done with the cmdline, free the path
@@ -173,7 +178,8 @@ int main() {
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
-    int mempercent = (int)((memused * 100) / info.totalram); // TODO: use this calc in loop on each proc
+    int mempercent = (int)((memused * 100) / info.totalram); 
+    // memory percentage with 2 decimals
     printf("Use memory percentage: %d%%\n", mempercent);
 
     // open the output file
@@ -189,7 +195,7 @@ int main() {
     }
     // temporary solution to write down the array
     for (unsigned int i = 0; i < proc_number; i++) {
-        // only print if mempercent is more than 1% 
+        // only print if mempercent is more than 0.5% 
         if (array[i].mempercent > 0.5) { 
             fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
         }
