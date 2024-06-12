@@ -30,6 +30,9 @@ int compare_proc_by_mem(const void* a, const void* b) {
     return 0;
 }
 
+
+// TODO: Make into a function that will be only called at the start of the run and on refresh
+
 int main() {
     // grab the list of files in /proc
     // TODO: find another solution omitting the use of BASH, same for the cleanup
@@ -175,6 +178,8 @@ int main() {
         memused += array[i].mem;
     }
 
+    // TODO: make into a single function
+    // TODO: not printing but showing in the gui
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
