@@ -5,6 +5,9 @@
 #include <unistd.h>         // for the sysconf function > page_size 
 #include <sys/sysinfo.h>    // for the sysinfo function > totalram 
 
+int compare_proc_by_mem(const void* a, const void* b);
+int gather_proc_info();
+
 typedef struct {
     unsigned int pid;
     char* cmdline;
@@ -13,10 +16,78 @@ typedef struct {
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
+struct sysinfo info;
+char* pid = NULL;
+proc* array = NULL;
+unsigned int proc_number = 0;
+
+// TODO: Make into a function that will be only called at the start of the run and on refresh
+
+int main() {
+    gather_proc_info();
+
+    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)
+    printf("Proc number: %d\n", proc_number);
+    // qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+
+    // for now, just print the total memory usage
+    unsigned long memused = 0;
+    for (unsigned int i = 0; i < proc_number; i++) {
+        memused += array[i].mem;
+    }
+
+    // TODO: make into a single function
+    // TODO: not printing but showing in the gui
+    // temporary printout of values
+    printf("Total memory usage: %luMb\n", memused / 1048576);
+    printf("Total memory: %lu Mb\n", info.totalram / 1048576);
+    int mempercent = (int)((memused * 100) / info.totalram); 
+    // memory percentage with 2 decimals
+    printf("Use memory percentage: %d%%\n", mempercent);
+
+    // open the output file
+    FILE *output_file = fopen("output.txt", "w");
+    if (output_file == NULL) {
+        printf("Could not open output file.\n");
+        for (unsigned int i = 0; i < proc_number; i++) {
+            free(array[i].cmdline);
+        }
+        free(array);
+        free(pid); // free the buffer from getline()
+        return 1;
+    }
+    // temporary solution to write down the array
+    for (unsigned int i = 0; i < proc_number; i++) {
+        // only print if mempercent is more than 0.5% 
+        if (array[i].mempercent > 0.5) { 
+            fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
+        }
+    }
+    fclose(output_file);
+
+    // free the array
+    for (unsigned int i = 0; i < proc_number; i++) {
+        free(array[i].cmdline);
+    }
+
+    // cleanup
+    
+    system("rm proclist.txt"); // temporary solution to clean up after each run
+    free(array);
+    free(pid); // free the buffer from getline()
+
+    return 0;
+}
+
+// functions
+
 // comparison function for qsort 
 // const void* as required by the qsort function
 int compare_proc_by_mem(const void* a, const void* b) {
     // typecast from void* to proc*
+    if (a == NULL || b == NULL) {
+        return 0;
+    }
     proc* proc_a = (proc*)a;
     proc* proc_b = (proc*)b;
     // comparison itself, with the return values -1 and 1 or 0 if equal
@@ -30,16 +101,12 @@ int compare_proc_by_mem(const void* a, const void* b) {
     return 0;
 }
 
-
-// TODO: Make into a function that will be only called at the start of the run and on refresh
-
-int main() {
+int gather_proc_info() {
     // grab the list of files in /proc
     // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
 
     // grab the total memory of the system
-    struct sysinfo info;
     sysinfo(&info); // saved in info.totalram, in bytes
 
     // open the list 
@@ -50,17 +117,15 @@ int main() {
     }
 
     // allocate mem for file of text in file
-    char* pid = NULL;
     size_t line_buffer = 0; // has to be in size_t, due to getline.. odd
 
     // prep the process array
     unsigned int array_size = 10;
+    unsigned int actual_array_size = 0;
 
     // allocate mem for the array
     proc* array = malloc(array_size * sizeof(proc));
 
-    // number of processes
-    unsigned int proc_number = 0;
 
     // loop through the list, grab a line until there are none(-1)
     while (getline(&pid, &line_buffer, input_file) != -1) {
@@ -165,58 +230,7 @@ int main() {
             }
         }
     }
-
     // close the proclist.txt
     fclose(input_file);
-
-    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)
-    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
-
-    // for now, just print the total memory usage
-    unsigned long memused = 0;
-    for (unsigned int i = 0; i < proc_number; i++) {
-        memused += array[i].mem;
-    }
-
-    // TODO: make into a single function
-    // TODO: not printing but showing in the gui
-    // temporary printout of values
-    printf("Total memory usage: %luMb\n", memused / 1048576);
-    printf("Total memory: %lu Mb\n", info.totalram / 1048576);
-    int mempercent = (int)((memused * 100) / info.totalram); 
-    // memory percentage with 2 decimals
-    printf("Use memory percentage: %d%%\n", mempercent);
-
-    // open the output file
-    FILE *output_file = fopen("output.txt", "w");
-    if (output_file == NULL) {
-        printf("Could not open output file.\n");
-        for (unsigned int i = 0; i < proc_number; i++) {
-            free(array[i].cmdline);
-        }
-        free(array);
-        free(pid); // free the buffer from getline()
-        return 1;
-    }
-    // temporary solution to write down the array
-    for (unsigned int i = 0; i < proc_number; i++) {
-        // only print if mempercent is more than 0.5% 
-        if (array[i].mempercent > 0.5) { 
-            fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
-        }
-    }
-    fclose(output_file);
-
-    // free the array
-    for (unsigned int i = 0; i < proc_number; i++) {
-        free(array[i].cmdline);
-    }
-
-    // cleanup
-    
-    system("rm proclist.txt"); // temporary solution to clean up after each run
-    free(array);
-    free(pid); // free the buffer from getline()
-
     return 0;
 }
