@@ -5,9 +5,6 @@
 #include <unistd.h>         // for the sysconf function > page_size 
 #include <sys/sysinfo.h>    // for the sysinfo function > totalram 
 
-int compare_proc_by_mem(const void* a, const void* b);
-int gather_proc_info();
-
 typedef struct {
     unsigned int pid;
     char* cmdline;
@@ -16,18 +13,21 @@ typedef struct {
     /// unsigned int cpu; (CPU not yet, apparently that's more difficult than I thought)
 } proc;
 
-struct sysinfo info;
-char* pid = NULL;
-proc* array = NULL;
-unsigned int proc_number = 0;
+int compare_proc_by_mem(const void* a, const void* b);
+int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number);
 
 // TODO: Make into a function that will be only called at the start of the run and on refresh
 
 int main() {
-    gather_proc_info();
 
-    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)
-    printf("Proc number: %d\n", proc_number);
+    struct sysinfo info;
+    char* pid = NULL;
+    proc* array = NULL;
+    unsigned int proc_number = 0;
+
+    gather_proc_info(info, pid, &array, &proc_number);
+
+    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)  
     // qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
 
     // for now, just print the total memory usage
@@ -41,7 +41,14 @@ int main() {
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
-    int mempercent = (int)((memused * 100) / info.totalram); 
+    // Check if totalram is not 0, if it is, set mempercent to 0 and proceed
+    int mempercent;
+    if (info.totalram != 0) {
+        mempercent = (int)((memused * 100) / info.totalram); 
+    } 
+    else {
+        mempercent = 0;
+    }
     // memory percentage with 2 decimals
     printf("Use memory percentage: %d%%\n", mempercent);
 
@@ -101,7 +108,7 @@ int compare_proc_by_mem(const void* a, const void* b) {
     return 0;
 }
 
-int gather_proc_info() {
+int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number) {
     // grab the list of files in /proc
     // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
@@ -124,7 +131,7 @@ int gather_proc_info() {
     unsigned int actual_array_size = 0;
 
     // allocate mem for the array
-    proc* array = malloc(array_size * sizeof(proc));
+    *array = malloc(array_size * sizeof(proc));
 
 
     // loop through the list, grab a line until there are none(-1)
@@ -157,17 +164,6 @@ int gather_proc_info() {
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
-                // check if the cmdline is not empty and starts with a '/'
-                // this had to be removed due to emulated processes not starting with '/' but drive letters, which might differ
-                /*
-                if (cmdline[0] == '\0' || cmdline[0] != '/') {
-                    // if empty or not containing a path, skip this PID
-                    free(cmdline);
-                    free(procpath);
-                    continue;
-                }
-                */
-
                 // find the end of the path and remove the rest (arguments etc) 
                 // changed from ' ' to '-' as the emulated paths had spaces in them
                 
@@ -195,6 +191,7 @@ int gather_proc_info() {
                     free(procpath);
                     continue;
                 }
+
                 // init the variables, the file includes many values, but we only need the second one (resident mem)
                 float memuse;
                 unsigned long value1, value2, value3, value4, value5, value6;
@@ -212,19 +209,19 @@ int gather_proc_info() {
                 float mempercent = (memuse * 100) / (float)(info.totalram * info.mem_unit); // mem_unit to potentialy convert to bytes
 
                 // check if there is space in the array
-                if (proc_number == array_size) {
+                if (*proc_number == array_size) {
                     // if no space, double the size of the array
                     array_size *= 2;
-                    array = realloc(array, array_size * sizeof(proc));
+                    *array = realloc(*array, array_size * sizeof(proc));
                 }
 
                 // add the proc values to the struct and array
-                array[proc_number].pid = atoi(pid);
-                array[proc_number].cmdline = cmdline;
-                array[proc_number].mem = memuse;
-                array[proc_number].mempercent = mempercent;
+                (*array)[*proc_number].pid = atoi(pid);
+                (*array)[*proc_number].cmdline = cmdline;
+                (*array)[*proc_number].mem = memuse;
+                (*array)[*proc_number].mempercent = mempercent;
 
-                proc_number++;
+                (*proc_number)++;
                 
                 break;
             }
