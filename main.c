@@ -24,6 +24,10 @@ int main() {
     char* pid = NULL;
     proc* array = NULL;
     unsigned int proc_number = 0;
+    unsigned long memused = 0;
+
+    // grab the total memory of the system
+    sysinfo(&info); // saved in info.totalram, in bytes
 
     gather_proc_info(info, pid, &array, &proc_number);
 
@@ -31,7 +35,7 @@ int main() {
     // qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
 
     // for now, just print the total memory usage
-    unsigned long memused = 0;
+    
     for (unsigned int i = 0; i < proc_number; i++) {
         memused += array[i].mem;
     }
@@ -60,7 +64,7 @@ int main() {
             free(array[i].cmdline);
         }
         free(array);
-        free(pid); // free the buffer from getline()
+        // free(pid); // free the buffer from getline()
         return 1;
     }
     // temporary solution to write down the array
@@ -81,7 +85,6 @@ int main() {
     
     system("rm proclist.txt"); // temporary solution to clean up after each run
     free(array);
-    free(pid); // free the buffer from getline()
 
     return 0;
 }
@@ -113,8 +116,7 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
     // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
 
-    // grab the total memory of the system
-    sysinfo(&info); // saved in info.totalram, in bytes
+    
 
     // open the list 
     FILE *input_file = fopen("proclist.txt", "r");
@@ -179,6 +181,10 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 // we are done with the cmdline, free the path
                 free(procpath);
 
+                // free the cmdline buffer
+                free(cmdline);
+                cmdline = NULL;
+
                 // load the statm path (this could be simplified by providing both cmdline & statm as arguments, but will do for now)
                 size = snprintf(NULL, 0, "/proc/%s/statm", pid);
                 procpath = (char*)malloc(size + 1);
@@ -204,6 +210,7 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
 
                 // convert the memory usage to bytes
                 memuse = (memuse * pagesize); 
+                
 
                 // calculate the percentage of memory used by the process
                 float mempercent = (memuse * 100) / (float)(info.totalram * info.mem_unit); // mem_unit to potentialy convert to bytes
@@ -223,10 +230,14 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
 
                 (*proc_number)++;
                 
+                // debuging at the end of each loop
+                // printf("Proc number: %u, memused: %f\n", *proc_number, memuse);
+
                 break;
             }
         }
     }
+    free(pid); // free the buffer from getline()
     // close the proclist.txt
     fclose(input_file);
     return 0;
