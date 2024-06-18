@@ -181,9 +181,10 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 // we are done with the cmdline, free the path
                 free(procpath);
 
-                // free the cmdline buffer
-                free(cmdline);
-                cmdline = NULL;
+                // enter the cmdline info into the proc, free the cmdline buffer
+                // (*array)[*proc_number].cmdline = cmdline;
+                // free(cmdline);
+                // cmdline = NULL;
 
                 // load the statm path (this could be simplified by providing both cmdline & statm as arguments, but will do for now)
                 size = snprintf(NULL, 0, "/proc/%s/statm", pid);
