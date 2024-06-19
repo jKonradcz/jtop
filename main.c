@@ -15,6 +15,8 @@ typedef struct {
 
 int compare_proc_by_mem(const void* a, const void* b);
 int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number);
+int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number);
+
 
 // TODO: Make into a function that will be only called at the start of the run and on refresh
 
@@ -25,34 +27,26 @@ int main() {
     proc* array = NULL;
     unsigned int proc_number = 0;
     unsigned long memused = 0;
+    int mempercent;
 
     // grab the total memory of the system
     sysinfo(&info); // saved in info.totalram, in bytes
 
     gather_proc_info(info, pid, &array, &proc_number);
 
-    // qsort magic (fields are: start of the array, number of elements, size in memory of each element and the comparison function)  
-    // qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+    // qsort magic (array, number of elements, size of each el, comparison fn)
+    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+
+    // calculate the memory usage
+    calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
     // for now, just print the total memory usage
-    
-    for (unsigned int i = 0; i < proc_number; i++) {
-        memused += array[i].mem;
-    }
-
     // TODO: make into a single function
     // TODO: not printing but showing in the gui
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
-    // Check if totalram is not 0, if it is, set mempercent to 0 and proceed
-    int mempercent;
-    if (info.totalram != 0) {
-        mempercent = (int)((memused * 100) / info.totalram); 
-    } 
-    else {
-        mempercent = 0;
-    }
+    
     // memory percentage with 2 decimals
     printf("Use memory percentage: %d%%\n", mempercent);
 
@@ -242,4 +236,20 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
     // close the proclist.txt
     fclose(input_file);
     return 0;
+}
+
+int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number) {
+    for (unsigned int i = 0; i < *proc_number; i++) {
+        *memused += (*array)[i].mem;
+    }
+
+    // Check if totalram is not 0, if it is, set mempercent to 0 and proceed
+    
+    if (info.totalram != 0) {
+        *mempercent = (int)((*memused * 100) / info.totalram); 
+    } 
+    else {
+        *mempercent = 0;
+    }
+
 }
