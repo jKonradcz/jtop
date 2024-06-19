@@ -1,4 +1,4 @@
-#include <gtk/gtk.h>
+#include "jtop.h"
 
 // taken from docs.gtk.org/gtk3/getting_started.html
 // compile with 'gcc `pkg-config --cflags gtk+-3.0` -o gui gui.c `pkg-config --libs gtk+-3.0`'
@@ -12,7 +12,7 @@ static void activate (GtkApplication* app, gpointer user_data) {
     gtk_widget_show_all (window);
 }
 
-int main (int argc, char **argv) {
+int gui_main (int argc, char **argv) {
     GtkApplication *app;
     int status;
     app = gtk_application_new ("jTOP.GUI", G_APPLICATION_DEFAULT_FLAGS); // had to be adjusted as the original was deprecated
