@@ -25,9 +25,12 @@ int main() {
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
-    // for now, just print the total memory usage
-    // TODO: make into a single function
-    // TODO: not printing but showing in the gui
+    // TODO: function to create window
+
+    // TODO: function to populate the window with data
+
+    // TODO: loop to update the window
+
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
@@ -153,8 +156,6 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                     }
                 }
                 
-                // TODO: remove the path, keep only the process name (after the last /)
-
                 // we are done with the cmdline, free the path
                 free(procpath);
 
@@ -227,8 +228,7 @@ int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc*
     }
 
     // Check if totalram is not 0, if it is, set mempercent to 0 and proceed
-    
-    if (info.totalram != 0) {
+        if (info.totalram != 0) {
         *mempercent = (int)((*memused * 100) / info.totalram); 
     } 
     else {
