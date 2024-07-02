@@ -6,6 +6,7 @@ int main(int argc, char **argv) {
     char* pid = NULL;
     proc* array = NULL;
     unsigned int proc_number = 0;
+    unsigned int used_proc = 0;
     unsigned long memused = 0;
     int mempercent;
 
@@ -19,12 +20,6 @@ int main(int argc, char **argv) {
 
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
-
-    // create the GUI thread
-    pthread_t gui_thread;
-    // void* gui_thread_args[2]= {argc, argv}; // arguments for the GUI thread, will ie window size
-    // pthread_create(&gui_thread, NULL, make_gui_thread, gui_thread_args);
-    pthread_create(&gui_thread, NULL, make_gui_thread, NULL);
 
     // TODO: function to populate the window with data
 
@@ -52,10 +47,24 @@ int main(int argc, char **argv) {
     for (unsigned int i = 0; i < proc_number; i++) {
         // only print if mempercent is more than 0.5% 
         if (array[i].mempercent > 0.5) { 
+            used_proc++;
             fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
         }
     }
     fclose(output_file);
+
+    // prep GUI size
+    gui_size gui_size_var;
+    gui_size_var.width = line_width;
+    gui_size_var.height = line_height * used_proc;
+
+    printf("proc_number: %u, used_proc: %u, window_height: %u\n", proc_number,used_proc, gui_size_var.height);
+
+    // create the GUI thread
+    pthread_t gui_thread;
+    // void* gui_thread_args[2]= {argc, argv}; // arguments for the GUI thread, will ie window size
+    // pthread_create(&gui_thread, NULL, make_gui_thread, gui_thread_args);
+    pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
     // free the array
     for (unsigned int i = 0; i < proc_number; i++) {
@@ -240,8 +249,7 @@ int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc*
 }
 
 void* make_gui_thread(void* arg) {
-    int argc = 0;
-    char** argv = NULL;
-    gui_main(argc, argv);
+    gui_size* gui_size_var = (gui_size*) arg;
+    gui_main(gui_size_var);
     return NULL;
 }
