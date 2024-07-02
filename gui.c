@@ -1,8 +1,6 @@
 #include "jtop.h"
-
 // taken from docs.gtk.org/gtk3/getting_started.html
 // compile with 'gcc `pkg-config --cflags gtk+-3.0` -o gui gui.c `pkg-config --libs gtk+-3.0`'
-
 
 static void activate (GtkApplication* app, gpointer user_data) {
     GtkWidget *window;

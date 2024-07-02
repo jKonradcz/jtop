@@ -1,11 +1,6 @@
 #include "jtop.h"
 
-int compare_proc_by_mem(const void* a, const void* b);
-int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number);
-int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number);
-
-
-int main() {
+int main(int argc, char **argv) {
 
     struct sysinfo info;
     char* pid = NULL;
@@ -25,7 +20,11 @@ int main() {
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
-    // TODO: function to create window
+    // create the GUI thread
+    pthread_t gui_thread;
+    // void* gui_thread_args[2]= {argc, argv}; // arguments for the GUI thread, will ie window size
+    // pthread_create(&gui_thread, NULL, make_gui_thread, gui_thread_args);
+    pthread_create(&gui_thread, NULL, make_gui_thread, NULL);
 
     // TODO: function to populate the window with data
 
@@ -67,6 +66,9 @@ int main() {
     
     system("rm proclist.txt"); // temporary solution to clean up after each run
     free(array);
+
+    // joining the threads so the program doesn't exit at the end of the main
+    pthread_join(gui_thread, NULL);
 
     return 0;
 }
@@ -235,4 +237,11 @@ int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc*
         *mempercent = 0;
     }
 
+}
+
+void* make_gui_thread(void* arg) {
+    int argc = 0;
+    char** argv = NULL;
+    gui_main(argc, argv);
+    return NULL;
 }
