@@ -21,8 +21,6 @@ int main(int argc, char **argv) {
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
-    // TODO: function to populate the window with data
-
     // TODO: loop to update the window
 
     // temporary printout of values
@@ -55,7 +53,7 @@ int main(int argc, char **argv) {
 
     // prep GUI size
     gui_size gui_size_var;
-    gui_size_var.width = line_width;
+    gui_size_var.width = window_width;
     gui_size_var.height = line_height * used_proc;
 
     printf("proc_number: %u, used_proc: %u, window_height: %u\n", proc_number,used_proc, gui_size_var.height);
@@ -66,13 +64,14 @@ int main(int argc, char **argv) {
     // pthread_create(&gui_thread, NULL, make_gui_thread, gui_thread_args);
     pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
+    // TODO: function to populate the window with data
+
     // free the array
     for (unsigned int i = 0; i < proc_number; i++) {
         free(array[i].cmdline);
     }
 
     // cleanup
-    
     system("rm proclist.txt"); // temporary solution to clean up after each run
     free(array);
 
@@ -84,9 +83,9 @@ int main(int argc, char **argv) {
 
 // functions
 
-// comparison function for qsort 
-// const void* as required by the qsort function
 int compare_proc_by_mem(const void* a, const void* b) {
+    // comparison function for qsort 
+    // const void* as required by the qsort function
     // typecast from void* to proc*
     if (a == NULL || b == NULL) {
         return 0;
