@@ -40,4 +40,6 @@ int gui_main (gui_size* gui_size_var);
 
 void* make_gui_thread(void* arg);
 
+void populate_grid(GtkWidget* grid, proc** array, unsigned int* used_proc);
+
 #endif
