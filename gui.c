@@ -20,8 +20,19 @@ static void activate (GtkApplication* app, gpointer size) {
     gtk_grid_set_column_spacing (GTK_GRID (grid), gui_size_var->width / 5);
     // attach the grid to the window
     gtk_container_add (GTK_CONTAINER (window), grid);
-
-
+    // create labels for the header
+    GtkWidget *header_pid = gtk_label_new ("PID");
+    GtkWidget *header_proc = gtk_label_new ("Process");
+    GtkWidget *header_mem = gtk_label_new ("Memory used");
+    GtkWidget *header_mempercent = gtk_label_new ("Memory %");
+    GtkWidget *header_killbutton = gtk_label_new ("Kill");
+    // attach the headers to their positions (numeric values are 1. collumn, 2. row, 3. width, 4. height)
+    gtk_grid_attach (GTK_GRID (grid), header_pid, 0, 0, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), header_proc, 1, 0, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), header_mem, 2, 0, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), header_mempercent, 3, 0, 1, 1);
+    gtk_grid_attach (GTK_GRID (grid), header_killbutton, 4, 0, 1, 1);
+    
     // make the window visible 
     gtk_widget_show_all (window);
 }
