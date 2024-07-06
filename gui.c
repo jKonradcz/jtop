@@ -56,6 +56,14 @@ int gui_main (gui_size* gui_size_var) {
     g_object_unref (app);
     return status;
 }
+
+void kill_proc (GtkWidget* widget, gpointer pid) {
+    unsigned int pid_to_kill = (unsigned int)(uintptr_t) pid; // this took me unreasonably long to figure out, there is not reason why it should be necessary, but compiler think otherwise, uintptr_r just in case the size would vary 
+    char killmessage[256];
+    snprintf(killmessage, sizeof(killmessage), "kill %u", pid_to_kill);
+    system (killmessage);
+
+}
 // TODO: function to populate the window / grid with data
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     char buffer[256];    
@@ -77,6 +85,10 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
         GtkWidget *mempercent = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), mempercent, 3, i+1, 1, 1);
         
+        // create the kill button with adequate PID 
+        GtkWidget *killbutton = gtk_button_new_with_label ("Kill");
+        g_signal_connect (killbutton, "clicked", G_CALLBACK (kill_proc), (gpointer) (uintptr_t) array[i].pid);
+        gtk_grid_attach (GTK_GRID (grid), killbutton, 4, i+1, 1, 1);
         // GtkWidget *killbutton = gtk_button_new_with_label ("Kill %u", array[i]->pid); // TODO: figure out how the button works
         // gtk_grid_attach (GTK_GRID (grid), killbutton, 4, i+1, 1, 1); // undeclared, have to figure out the sequencing
         

@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     printf("Use memory percentage: %d%%\n", mempercent);
 
     // open the output file
+    /*
     FILE *output_file = fopen("output.txt", "w");
     if (output_file == NULL) {
         printf("Could not open output file.\n");
@@ -42,15 +43,18 @@ int main(int argc, char **argv) {
         // free(pid); // free the buffer from getline()
         return 1;
     }
-    // temporary solution to write down the array
+    */
+    // filter out the processes, leave those with more than 0.5% memory usage
     for (unsigned int i = 0; i < proc_number; i++) {
         // only print if mempercent is more than 0.5% 
         if (array[i].mempercent > 0.5) { 
             used_proc++;
-            fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
+            // previously part of temporary output printout
+            // fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
         }
     }
-    fclose(output_file);
+    // fclose(output_file);
+    
 
     // prep GUI size
     gui_size gui_size_var;
