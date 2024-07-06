@@ -2,12 +2,11 @@
 // taken from docs.gtk.org/gtk3/getting_started.html
 // compile with 'gcc `pkg-config --cflags gtk+-3.0` -o gui gui.c `pkg-config --libs gtk+-3.0`'
 
-void populate_grid(GtkWidget* grid, proc** array, unsigned int* used_proc);
-
 static void activate (GtkApplication* app, gpointer size) {
     // typecast the gpointer to gui_size struct
     gui_size* gui_size_var = (gui_size*) size;
     
+    printf("used_proc in activate: %u\n", gui_size_var->used_proc);
     // create a new window
     GtkWidget *window = gtk_application_window_new (app);
     // set the window title
@@ -34,12 +33,19 @@ static void activate (GtkApplication* app, gpointer size) {
     gtk_grid_attach (GTK_GRID (grid), header_mem, 2, 0, 1, 1);
     gtk_grid_attach (GTK_GRID (grid), header_mempercent, 3, 0, 1, 1);
     gtk_grid_attach (GTK_GRID (grid), header_killbutton, 4, 0, 1, 1); 
-    
+
+    populate_grid(grid, gui_size_var->array, gui_size_var->used_proc);
+
     // make the window visible 
     gtk_widget_show_all (window);
 }
 
 int gui_main (gui_size* gui_size_var) {
+    proc* array = gui_size_var->array;
+    unsigned int used_proc = gui_size_var->used_proc;
+
+    // debugging comment- printf("Pre populate call from gui_main, PID: %u, proc: %s, mempercent: %.2f%%\n", array[0].pid, array[0].cmdline, array[0].mempercent);
+   
     // creates new GTK application with the ID and default flag
     GtkApplication *app = gtk_application_new ("jTOP.GUI", G_APPLICATION_DEFAULT_FLAGS);
     // connect the activate signal to the activate function and hands over the gui_size struct
@@ -50,11 +56,13 @@ int gui_main (gui_size* gui_size_var) {
     g_object_unref (app);
     return status;
 }
-/* TODO: function to populate the window / grid with data
-void populate_grid(GtkWidget* grid, proc** array, unsigned int* used_proc) {
+// TODO: function to populate the window / grid with data
+void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     // loop through the array of processes
-    used_proc = *used_proc;
+    printf("used_proc in populate_grid: %u\n", used_proc);
     for (int i = 0; i < used_proc; i++) {
+        printf("PID: %u, proc: %s\n", array[i].pid, array[i].cmdline);        
+        /*
         // create labels for the process data
         GtkWidget *pid = gtk_label_new (array[i]->pid); // TODO: figure out how to typecast / convert each value to string
         GtkWidget *proc = gtk_label_new (array[i]->cmdline);
@@ -67,7 +75,8 @@ void populate_grid(GtkWidget* grid, proc** array, unsigned int* used_proc) {
         gtk_grid_attach (GTK_GRID (grid), mem, 2, i+1, 1, 1);
         gtk_grid_attach (GTK_GRID (grid), mempercent, 3, i+1, 1, 1);
         // gtk_grid_attach (GTK_GRID (grid), killbutton, 4, i+1, 1, 1); // undeclared, have to figure out the sequencing
+        */
     }
 }
-*/
+
 

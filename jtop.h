@@ -28,11 +28,13 @@ typedef struct {
 typedef struct {
     unsigned int width;
     unsigned int height;
+    unsigned int used_proc;
+    proc* array;
 } gui_size;
 
 int compare_proc_by_mem(const void* a, const void* b);
 
-int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number);
+int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number, char* cmdline);
 
 int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number);
 
@@ -40,6 +42,6 @@ int gui_main (gui_size* gui_size_var);
 
 void* make_gui_thread(void* arg);
 
-void populate_grid(GtkWidget* grid, proc** array, unsigned int* used_proc);
+void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc);
 
 #endif

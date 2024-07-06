@@ -4,6 +4,7 @@ int main(int argc, char **argv) {
 
     struct sysinfo info;
     char* pid = NULL;
+    char* cmdline = NULL;
     proc* array = NULL;
     unsigned int proc_number = 0;
     unsigned int used_proc = 0;
@@ -13,7 +14,7 @@ int main(int argc, char **argv) {
     // grab the total memory of the system
     sysinfo(&info); // saved in info.totalram, in bytes
 
-    gather_proc_info(info, pid, &array, &proc_number);
+    gather_proc_info(info, pid, &array, &proc_number, cmdline);
 
     // qsort magic (array, number of elements, size of each el, comparison fn)
     qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
@@ -55,15 +56,18 @@ int main(int argc, char **argv) {
     gui_size gui_size_var;
     gui_size_var.width = window_width;
     gui_size_var.height = line_height * used_proc;
-
-    printf("proc_number: %u, used_proc: %u, window_height: %u\n", proc_number,used_proc, gui_size_var.height);
+    gui_size_var.used_proc = used_proc;
+    gui_size_var.array = array;
 
     // create the GUI thread
+    // debugging comment- printf("Pre-thread print from main, PID: %u, proc: %s, mempercent: %.2f%%\n", array[0].pid, array[0].cmdline, array[0].mempercent);
+    
     pthread_t gui_thread;
-    // void* gui_thread_args[2]= {argc, argv}; // arguments for the GUI thread, will ie window size
-    // pthread_create(&gui_thread, NULL, make_gui_thread, gui_thread_args);
+    
     pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
+    // joining the threads so the program doesn't exit at the end of the main
+    pthread_join(gui_thread, NULL);
     // TODO: function to populate the window with data
 
     // free the array
@@ -74,9 +78,6 @@ int main(int argc, char **argv) {
     // cleanup
     system("rm proclist.txt"); // temporary solution to clean up after each run
     free(array);
-
-    // joining the threads so the program doesn't exit at the end of the main
-    pthread_join(gui_thread, NULL);
 
     return 0;
 }
@@ -103,7 +104,7 @@ int compare_proc_by_mem(const void* a, const void* b) {
     return 0;
 }
 
-int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number) {
+int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number, char* cmdline) {
     // grab the list of files in /proc
     // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
@@ -151,21 +152,22 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 }
 
                 // read the cmdline (process name)
-                char* cmdline = NULL;
                 size_t cmdline_buffer = 0; // same thing, size_t because of getline
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
                 // find the end of the path and remove the rest (arguments etc) 
                 // changed from ' ' to '-' as the emulated paths had spaces in them
-                
+                /*
                 for (char* c = cmdline; *c != '\0'; c++) {
                     if (*c == '-') {
                         *c = '\0';
                         break;
                     }
-                }
-                
+                } */
+                cmdline[strcspn(cmdline, "-")] = '\0';
+
+
                 // we are done with the cmdline, free the path
                 free(procpath);
 
@@ -213,7 +215,8 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
 
                 // add the proc values to the struct and array
                 (*array)[*proc_number].pid = atoi(pid);
-                (*array)[*proc_number].cmdline = cmdline;
+                (*array)[*proc_number].cmdline = strdup(cmdline);
+                // (*array)[*proc_number].cmdline = "bruh";
                 (*array)[*proc_number].mem = memuse;
                 (*array)[*proc_number].mempercent = mempercent;
 
