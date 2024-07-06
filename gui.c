@@ -58,24 +58,28 @@ int gui_main (gui_size* gui_size_var) {
 }
 // TODO: function to populate the window / grid with data
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
+    char buffer[256];    
     // loop through the array of processes
-    printf("used_proc in populate_grid: %u\n", used_proc);
-    for (int i = 0; i < used_proc; i++) {
-        printf("PID: %u, proc: %s\n", array[i].pid, array[i].cmdline);        
-        /*
-        // create labels for the process data
-        GtkWidget *pid = gtk_label_new (array[i]->pid); // TODO: figure out how to typecast / convert each value to string
-        GtkWidget *proc = gtk_label_new (array[i]->cmdline);
-        GtkWidget *mem = gtk_label_new (array[i]->mem);
-        GtkWidget *mempercent = gtk_label_new (array[i]->mempercent);
-        // GtkWidget *killbutton = gtk_button_new_with_label ("Kill %u", array[i]->pid); // TODO: figure out how the button works
-        // attach the labels to their positions
+        for (int i = 0; i < used_proc; i++) {
+        // debug comment- printf("PID: %u, proc: %s\n", array[i].pid, array[i].cmdline);        
+        snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
+        GtkWidget *pid = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), pid, 0, i+1, 1, 1);
+
+        GtkWidget *proc = gtk_label_new (array[i].cmdline);
         gtk_grid_attach (GTK_GRID (grid), proc, 1, i+1, 1, 1);
+
+        snprintf(buffer, sizeof(buffer), "%lu", array[i].mem);
+        GtkWidget *mem = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), mem, 2, i+1, 1, 1);
+
+        snprintf(buffer, sizeof(buffer), "%.2f%%", array[i].mempercent);
+        GtkWidget *mempercent = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), mempercent, 3, i+1, 1, 1);
+        
+        // GtkWidget *killbutton = gtk_button_new_with_label ("Kill %u", array[i]->pid); // TODO: figure out how the button works
         // gtk_grid_attach (GTK_GRID (grid), killbutton, 4, i+1, 1, 1); // undeclared, have to figure out the sequencing
-        */
+        
     }
 }
 
