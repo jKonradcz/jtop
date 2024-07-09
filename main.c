@@ -1,6 +1,6 @@
 #include "jtop.h"
 
-int main(int argc, char **argv) {
+int main (int argc, char **argv) {
 
     struct sysinfo info;
     char* pid = NULL;
@@ -12,12 +12,12 @@ int main(int argc, char **argv) {
     int mempercent;
 
     // grab the total memory of the system
-    sysinfo(&info); // saved in info.totalram, in bytes
+    sysinfo (&info); // saved in info.totalram, in bytes
 
     gather_proc_info(info, pid, &array, &proc_number, cmdline);
 
     // qsort magic (array, number of elements, size of each el, comparison fn)
-    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+    qsort(array, proc_number, sizeof (proc), compare_proc_by_mem);
 
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
@@ -68,27 +68,27 @@ int main(int argc, char **argv) {
     
     pthread_t gui_thread;
     
-    pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
+    pthread_create (&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
     // joining the threads so the program doesn't exit at the end of the main
-    pthread_join(gui_thread, NULL);
+    pthread_join (gui_thread, NULL);
     // TODO: function to populate the window with data
 
     // free the array
     for (unsigned int i = 0; i < proc_number; i++) {
-        free(array[i].cmdline);
+        free (array[i].cmdline);
     }
 
     // cleanup
-    system("rm proclist.txt"); // temporary solution to clean up after each run
-    free(array);
+    system ("rm proclist.txt"); // temporary solution to clean up after each run
+    free (array);
 
     return 0;
 }
 
 // functions
 
-int compare_proc_by_mem(const void* a, const void* b) {
+int compare_proc_by_mem (const void* a, const void* b) {
     // comparison function for qsort 
     // const void* as required by the qsort function
     // typecast from void* to proc*
@@ -108,13 +108,13 @@ int compare_proc_by_mem(const void* a, const void* b) {
     return 0;
 }
 
-int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number, char* cmdline) {
+int gather_proc_info (struct sysinfo info, char* pid, proc** array, unsigned int* proc_number, char* cmdline) {
     // grab the list of files in /proc
     // TODO: find another solution omitting the use of BASH, same for the cleanup
     system("ls /proc > proclist.txt");
 
     // open the list 
-    FILE *input_file = fopen("proclist.txt", "r");
+    FILE *input_file = fopen ("proclist.txt", "r");
     if (input_file == NULL){
         printf("Trouble loading the /proc list.");
         return 1;
@@ -128,7 +128,7 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
     unsigned int actual_array_size = 0;
 
     // allocate mem for the array
-    *array = malloc(array_size * sizeof(proc));
+    *array = malloc(array_size * sizeof (proc));
 
 
     // loop through the list, grab a line until there are none(-1)
@@ -136,29 +136,29 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
 
         // check each line and each char in the line if name contains number
         for (char* point = pid; *point != '\0'; point++) {
-            if (isdigit(*point)) {
+            if (isdigit (*point)) {
                 
                 // remove whitespace from the pid
-                pid[strcspn(pid, "\r\n")] = '\0';
+                pid[strcspn (pid, "\r\n")] = '\0';
 
                 // alloc mem for the procpath
-                int size = snprintf(NULL, 0, "/proc/%s/cmdline", pid);
-                char* procpath = (char*)malloc(size + 1);
+                int size = snprintf (NULL, 0, "/proc/%s/cmdline", pid);
+                char* procpath = (char*) malloc (size + 1);
                 // actually write the path to the procpath
                 snprintf(procpath, size + 1, "/proc/%s/cmdline", pid);
 
                 // open the cmdline file (process path/name)
-                FILE *cmdline_file = fopen(procpath, "r");
+                FILE *cmdline_file = fopen (procpath, "r");
                 if (cmdline_file == NULL) {
                     // if empty, skip this PID
-                    free(procpath);
+                    free (procpath);
                     continue;
                 }
 
                 // read the cmdline (process name)
                 size_t cmdline_buffer = 0; // same thing, size_t because of getline
-                getline(&cmdline, &cmdline_buffer, cmdline_file);
-                fclose(cmdline_file);
+                getline (&cmdline, &cmdline_buffer, cmdline_file);
+                fclose (cmdline_file);
 
                 // find the end of the path and remove the rest (arguments etc) 
                 // changed from ' ' to '-' as the emulated paths had spaces in them
@@ -169,11 +169,11 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                         break;
                     }
                 } */
-                cmdline[strcspn(cmdline, "-")] = '\0';
+                cmdline[strcspn (cmdline, "-")] = '\0';
 
 
                 // we are done with the cmdline, free the path
-                free(procpath);
+                free (procpath);
 
                 // enter the cmdline info into the proc, free the cmdline buffer
                 // (*array)[*proc_number].cmdline = cmdline;
@@ -181,27 +181,27 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 // cmdline = NULL;
 
                 // load the statm path (this could be simplified by providing both cmdline & statm as arguments, but will do for now)
-                size = snprintf(NULL, 0, "/proc/%s/statm", pid);
-                procpath = (char*)malloc(size + 1);
+                size = snprintf (NULL, 0, "/proc/%s/statm", pid);
+                procpath = (char*) malloc (size + 1);
                 snprintf(procpath, size + 1, "/proc/%s/statm", pid);    /// procpath now contains the path to the statm file
                 
                 // read the /proc/[pid]/statm file to get the memory usage
-                FILE* statm_file = fopen(procpath, "r");
+                FILE* statm_file = fopen (procpath, "r");
                 if (statm_file == NULL) {
                     // if empty, skip this PID
-                    free(procpath);
+                    free (procpath);
                     continue;
                 }
 
                 // init the variables, the file includes many values, but we only need the second one (resident mem)
                 float memuse;
                 unsigned long value1, value2, value3, value4, value5, value6;
-                fscanf(statm_file, "%lu %f %lu %lu %lu %lu %lu", &value1, &memuse, &value2, &value3, &value4, &value5, &value6);
-                fclose(statm_file);
-                free(procpath);
+                fscanf (statm_file, "%lu %f %lu %lu %lu %lu %lu", &value1, &memuse, &value2, &value3, &value4, &value5, &value6);
+                fclose (statm_file);
+                free (procpath);
 
                 // get the page size from the system                
-                unsigned long pagesize = sysconf(_SC_PAGESIZE);
+                unsigned long pagesize = sysconf (_SC_PAGESIZE);
 
                 // convert the memory usage to bytes
                 memuse = (memuse * pagesize); 
@@ -214,12 +214,12 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 if (*proc_number == array_size) {
                     // if no space, double the size of the array
                     array_size *= 2;
-                    *array = realloc(*array, array_size * sizeof(proc));
+                    *array = realloc (*array, array_size * sizeof(proc));
                 }
 
                 // add the proc values to the struct and array
-                (*array)[*proc_number].pid = atoi(pid);
-                (*array)[*proc_number].cmdline = strdup(cmdline);
+                (*array)[*proc_number].pid = atoi (pid);
+                (*array)[*proc_number].cmdline = strdup (cmdline);
                 // (*array)[*proc_number].cmdline = "bruh";
                 (*array)[*proc_number].mem = memuse;
                 (*array)[*proc_number].mempercent = mempercent;
@@ -239,7 +239,7 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
     return 0;
 }
 
-int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number) {
+int calc_mem (int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number) {
     for (unsigned int i = 0; i < *proc_number; i++) {
         *memused += (*array)[i].mem;
     }
@@ -254,8 +254,8 @@ int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc*
 
 }
 
-void* make_gui_thread(void* arg) {
+void* make_gui_thread (void* arg) {
     gui_size* gui_size_var = (gui_size*) arg;
-    gui_main(gui_size_var);
+    gui_main (gui_size_var);
     return NULL;
 }
