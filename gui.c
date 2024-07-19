@@ -12,10 +12,21 @@ static void activate (GtkApplication* app, gpointer size) {
     // set the window title
     gtk_window_set_title (GTK_WINDOW (window), "jTOP");
     // set the window default size, this is calculated in main.c and handed over in the gui_size struct
-    gtk_window_set_default_size (GTK_WINDOW (window), gui_size_var->width, gui_size_var->height);
+    gtk_window_set_default_size (GTK_WINDOW (window), gui_size_var->width, gui_size_var->height +1); // +1 for the footer/ refresh
 
     // create the grid
     GtkWidget *grid = gtk_grid_new ();
+
+    GtkWidget *footer_box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+    // GtkWidget *footer_label = gtk_label_new ("Footer");
+    gtk_box_pack_start (GTK_BOX (footer_box), NULL, TRUE, TRUE, 0);
+    GtkWidget *footer_row = gtk_grid_new();
+    gtk_grid_attach (GTK_GRID (grid), footer_box, 0, gui_size_var->used_proc + 1, 5, 1);
+    gtk_container_add (GTK_CONTAINER (footer_row), footer_box);
+
+    GtkWidget *refreshbutton = gtk_button_new_with_label ("Refresh");
+    gtk_box_pack_end (GTK_BOX (footer_box), refreshbutton, FALSE, TRUE, 0);
+
     // set the grid size
     gtk_grid_set_row_spacing (GTK_GRID (grid), 20);
     gtk_grid_set_column_spacing (GTK_GRID (grid), gui_size_var->width / 5);
