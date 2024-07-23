@@ -22,8 +22,6 @@ int main(int argc, char **argv) {
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
-    // TODO: loop to update the window
-
     // temporary printout of values
     printf("Total memory usage: %luMb\n", memused / 1048576);
     printf("Total memory: %lu Mb\n", info.totalram / 1048576);
@@ -31,31 +29,14 @@ int main(int argc, char **argv) {
     // memory percentage with 2 decimals
     printf("Use memory percentage: %d%%\n", mempercent);
 
-    // open the output file
-    /*
-    FILE *output_file = fopen("output.txt", "w");
-    if (output_file == NULL) {
-        printf("Could not open output file.\n");
-        for (unsigned int i = 0; i < proc_number; i++) {
-            free(array[i].cmdline);
-        }
-        free(array);
-        // free(pid); // free the buffer from getline()
-        return 1;
-    }
-    */
     // filter out the processes, leave those with more than 0.5% memory usage
     for (unsigned int i = 0; i < proc_number; i++) {
         // only print if mempercent is more than 0.5% 
         if (array[i].mempercent > 0.5) { 
             used_proc++;
-            // previously part of temporary output printout
-            // fprintf(output_file, "%u %s %lub %.2f%%\n", array[i].pid, array[i].cmdline, array[i].mem, array[i].mempercent);
         }
     }
-    // fclose(output_file);
-    
-
+   
     // prep GUI size
     gui_size gui_size_var;
     gui_size_var.width = window_width;
@@ -64,24 +45,24 @@ int main(int argc, char **argv) {
     gui_size_var.array = array;
 
     // create the GUI thread
-    // debugging comment- printf("Pre-thread print from main, PID: %u, proc: %s, mempercent: %.2f%%\n", array[0].pid, array[0].cmdline, array[0].mempercent);
-    
+       
     pthread_t gui_thread;
     
     pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
+    // loop running until the window is closed
+    /*
+    while (*window != NULL) {
+
+    }
+    */
     // joining the threads so the program doesn't exit at the end of the main
     pthread_join(gui_thread, NULL);
-    // TODO: function to populate the window with data
 
-    // free the array
-    for (unsigned int i = 0; i < proc_number; i++) {
-        free(array[i].cmdline);
-    }
 
     // cleanup
+    clear_array(array, proc_number);
     system("rm proclist.txt"); // temporary solution to clean up after each run
-    free(array);
 
     return 0;
 }
@@ -258,4 +239,17 @@ void* make_gui_thread(void* arg) {
     gui_size* gui_size_var = (gui_size*) arg;
     gui_main(gui_size_var);
     return NULL;
+}
+
+int clear_array(proc* array, unsigned int proc_number) {
+    if (array == NULL) {
+        return 1;
+    }
+    // clear the cmdline
+    for (unsigned int i = 0; i < proc_number; i++) {
+        free(array[i].cmdline);
+    }
+    // clear the rest of the array
+    free(array);
+    return 0;
 }

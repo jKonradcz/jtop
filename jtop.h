@@ -44,4 +44,6 @@ void* make_gui_thread(void* arg);
 
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc);
 
+int clear_array(proc* array, unsigned int proc_number);
+
 #endif
