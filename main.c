@@ -1,5 +1,7 @@
 #include "jtop.h"
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int main(int argc, char **argv) {
 
     struct sysinfo info;
@@ -22,20 +24,8 @@ int main(int argc, char **argv) {
     // calculate the memory usage
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
 
-    // temporary printout of values
-    printf("Total memory usage: %luMb\n", memused / 1048576);
-    printf("Total memory: %lu Mb\n", info.totalram / 1048576);
-    
-    // memory percentage with 2 decimals
-    printf("Use memory percentage: %d%%\n", mempercent);
-
     // filter out the processes, leave those with more than 0.5% memory usage
-    for (unsigned int i = 0; i < proc_number; i++) {
-        // only print if mempercent is more than 0.5% 
-        if (array[i].mempercent > 0.5) { 
-            used_proc++;
-        }
-    }
+    filter_proc(array, &proc_number, &used_proc);
    
     // prep GUI size
     gui_size gui_size_var;
@@ -45,20 +35,12 @@ int main(int argc, char **argv) {
     gui_size_var.array = array;
 
     // create the GUI thread
-       
     pthread_t gui_thread;
-    
     pthread_create(&gui_thread, NULL, make_gui_thread, &gui_size_var);
 
-    // loop running until the window is closed
-    /*
-    while (*window != NULL) {
-
-    }
-    */
     // joining the threads so the program doesn't exit at the end of the main
+    // remainer of main is executed when the window / gui_thread is closed
     pthread_join(gui_thread, NULL);
-
 
     // cleanup
     clear_array(array, proc_number);
@@ -218,6 +200,16 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
     // close the proclist.txt
     fclose(input_file);
     return 0;
+}
+
+int filter_proc(proc* array, unsigned int* proc_number, unsigned int* used_proc) {
+    // filter out the processes, leave those with more than 0.5% memory usage
+    for (unsigned int i = 0; i < *proc_number; i++) {
+        // only print if mempercent is more than 0.5% 
+        if (array[i].mempercent > 0.5) { 
+            (*used_proc)++;
+        }
+    }
 }
 
 int calc_mem(int* mempercent, unsigned long* memused, struct sysinfo info, proc** array, unsigned int* proc_number) {

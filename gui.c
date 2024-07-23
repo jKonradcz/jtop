@@ -2,11 +2,12 @@
 // taken from docs.gtk.org/gtk3/getting_started.html
 // compile with 'gcc `pkg-config --cflags gtk+-3.0` -o gui gui.c `pkg-config --libs gtk+-3.0`'
 
+extern pthread_mutex_t mutex;
+
 static void activate(GtkApplication* app, gpointer size) {
     // typecast the gpointer to gui_size struct
     gui_size* gui_size_var = (gui_size*) size;
     
-    printf("used_proc in activate: %u\n", gui_size_var->used_proc);
     // create a new window
     GtkWidget *window = gtk_application_window_new (app);
     // set the window title
@@ -16,15 +17,6 @@ static void activate(GtkApplication* app, gpointer size) {
 
     // create the grid
     GtkWidget *grid = gtk_grid_new();
-
-    GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    
-    GtkWidget *footer_row = gtk_grid_new();
-    gtk_grid_attach(GTK_GRID(grid), footer_box, 0, gui_size_var->used_proc + 1, 5, 1);
-    
-    GtkWidget *refreshbutton = gtk_button_new_with_label("Refresh");
-    gtk_box_pack_end(GTK_BOX(footer_box), refreshbutton, FALSE, TRUE, 0);
-
     // set the grid size
     gtk_grid_set_row_spacing(GTK_GRID(grid), 20);
     gtk_grid_set_column_spacing(GTK_GRID(grid), gui_size_var->width / 5);
@@ -41,7 +33,15 @@ static void activate(GtkApplication* app, gpointer size) {
     gtk_grid_attach(GTK_GRID(grid), header_proc, 1, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), header_mem, 2, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), header_mempercent, 3, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), header_killbutton, 4, 0, 1, 1); 
+    gtk_grid_attach(GTK_GRID(grid), header_killbutton, 4, 0, 1, 1);
+
+    // add the footer and refresh button
+    GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    GtkWidget *footer_row = gtk_grid_new();
+    gtk_grid_attach(GTK_GRID(grid), footer_box, 0, gui_size_var->used_proc + 1, 5, 1);
+    GtkWidget *refreshbutton = gtk_button_new_with_label("Refresh");
+    g_signal_connect(refreshbutton, "clicked", G_CALLBACK(refresh), grid);
+    gtk_box_pack_end(GTK_BOX(footer_box), refreshbutton, FALSE, TRUE, 0); 
 
     populate_grid(grid, gui_size_var->array, gui_size_var->used_proc);
 
@@ -63,7 +63,7 @@ int gui_main(gui_size* gui_size_var) {
     g_object_unref(app);
     return status;
 }
-
+// fucntion for the kill button
 void kill_proc(GtkWidget* widget, gpointer pid) {
     unsigned int pid_to_kill = (unsigned int)(uintptr_t) pid; // this took me unreasonably long to figure out, there is not reason why it should be necessary, but compiler think otherwise, uintptr_r just in case the size would vary 
     char killmessage[256];
@@ -75,7 +75,7 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     char buffer[256];    
     // loop through the array of processes
         for (int i = 0; i < used_proc; i++) {
-        // debug comment- printf("PID: %u, proc: %s\n", array[i].pid, array[i].cmdline);        
+        
         snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
         GtkWidget *pid = gtk_label_new(buffer);
         gtk_grid_attach(GTK_GRID(grid), pid, 0, i+1, 1, 1);
@@ -98,4 +98,36 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     }
 }
 
+void refresh(GtkWidget* grid, proc* array, unsigned int used_proc) {
+    pthread_mutex_lock(&mutex);
+    
+    // Gather new process information
+    struct sysinfo info;
+    sysinfo(&info);
+
+    char* pid = NULL;
+    char* cmdline = NULL;
+    unsigned int proc_number = 0;
+    unsigned long memused = 0;
+    int mempercent = 0;
+
+    gather_proc_info(info, pid, &array, &proc_number, cmdline);
+    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+    calc_mem(&mempercent, &memused, info, &array, &proc_number);
+    filter_proc(array, &proc_number, &used_proc);
+
+    // Clear the grid before repopulating
+    GtkWidget *child;
+    GList *children, *l;
+    children = gtk_container_get_children(GTK_CONTAINER(grid));
+    for (int i = proc_number * 5; i >= 0; i--) {
+        child = GTK_WIDGET(children->data);
+        gtk_widget_destroy(child);
+    }
+    g_list_free(children);
+
+    populate_grid(grid, array, used_proc);
+
+    pthread_mutex_unlock(&mutex);
+}
 
