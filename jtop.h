@@ -31,6 +31,11 @@ typedef struct {
     proc* array;
 } gui_size;
 
+typedef struct {
+    GtkWidget *grid;
+    proc *array;
+} refreshd;
+
 int compare_proc_by_mem(const void* a, const void* b);
 
 int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int* proc_number, char* cmdline);
@@ -49,6 +54,6 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc);
 
 int clear_array(proc* array, unsigned int proc_number);
 
-void refresh(GtkWidget* grid, proc* array, unsigned int used_proc);
+void refresh(GtkWidget* grid, gpointer refresh_data);
 
 #endif

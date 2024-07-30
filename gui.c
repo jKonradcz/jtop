@@ -37,10 +37,16 @@ static void activate(GtkApplication* app, gpointer size) {
 
     // add the footer and refresh button
     GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    GtkWidget *footer_row = gtk_grid_new();
     gtk_grid_attach(GTK_GRID(grid), footer_box, 0, gui_size_var->used_proc + 1, 5, 1);
+    
+    // add the refresh button
     GtkWidget *refreshbutton = gtk_button_new_with_label("Refresh");
-    g_signal_connect(refreshbutton, "clicked", G_CALLBACK(refresh), grid);
+    // combine the array and grid in a new struct to hand over to the refresh
+    refreshd *refresh_data = g_malloc(sizeof(refreshd));
+    refresh_data->grid = grid;
+    refresh_data->array = gui_size_var->array;
+    
+    g_signal_connect(refreshbutton, "clicked", G_CALLBACK(refresh), refresh_data);
     gtk_box_pack_end(GTK_BOX(footer_box), refreshbutton, FALSE, TRUE, 0); 
 
     populate_grid(grid, gui_size_var->array, gui_size_var->used_proc);
@@ -74,40 +80,45 @@ void kill_proc(GtkWidget* widget, gpointer pid) {
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     char buffer[256];    
     // loop through the array of processes
-        for (int i = 0; i < used_proc; i++) {
+    for (int i = 0; i < used_proc; i++) {
+    
+    snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
+    GtkWidget *pid = gtk_label_new(buffer);
+    gtk_grid_attach(GTK_GRID(grid), pid, 0, i+1, 1, 1);
+
+    GtkWidget *proc = gtk_label_new(array[i].cmdline);
+    gtk_grid_attach(GTK_GRID(grid), proc, 1, i+1, 1, 1);
+
+    snprintf(buffer, sizeof(buffer), "%lu", array[i].mem);
+    GtkWidget *mem = gtk_label_new(buffer);
+    gtk_grid_attach(GTK_GRID(grid), mem, 2, i+1, 1, 1);
+
+    snprintf(buffer, sizeof(buffer), "%.2f%%", array[i].mempercent);
+    GtkWidget *mempercent = gtk_label_new(buffer);
+    gtk_grid_attach(GTK_GRID(grid), mempercent, 3, i+1, 1, 1);
+    
+    // create the kill button with adequate PID
+    GtkWidget *killbutton = gtk_button_new_with_label("Kill");
+    g_signal_connect (killbutton, "clicked", G_CALLBACK(kill_proc), (gpointer) (uintptr_t) array[i].pid);
+    gtk_grid_attach(GTK_GRID(grid), killbutton, 4, i+1, 1, 1);
         
-        snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
-        GtkWidget *pid = gtk_label_new(buffer);
-        gtk_grid_attach(GTK_GRID(grid), pid, 0, i+1, 1, 1);
-
-        GtkWidget *proc = gtk_label_new(array[i].cmdline);
-        gtk_grid_attach(GTK_GRID(grid), proc, 1, i+1, 1, 1);
-
-        snprintf(buffer, sizeof(buffer), "%lu", array[i].mem);
-        GtkWidget *mem = gtk_label_new(buffer);
-        gtk_grid_attach(GTK_GRID(grid), mem, 2, i+1, 1, 1);
-
-        snprintf(buffer, sizeof(buffer), "%.2f%%", array[i].mempercent);
-        GtkWidget *mempercent = gtk_label_new(buffer);
-        gtk_grid_attach(GTK_GRID(grid), mempercent, 3, i+1, 1, 1);
-        
-        // create the kill button with adequate PID 
-        GtkWidget *killbutton = gtk_button_new_with_label("Kill");
-        g_signal_connect (killbutton, "clicked", G_CALLBACK(kill_proc), (gpointer) (uintptr_t) array[i].pid);
-        gtk_grid_attach(GTK_GRID(grid), killbutton, 4, i+1, 1, 1);       
     }
 }
 
-void refresh(GtkWidget* grid, proc* array, unsigned int used_proc) {
+void refresh(GtkWidget* widget, gpointer refresh_data) {
+    refreshd *data = (refreshd *)refresh_data;
+    GtkWidget *grid = data->grid;
+    proc *array = data->array;
+
     pthread_mutex_lock(&mutex);
-    
-    // Gather new process information
+
     struct sysinfo info;
     sysinfo(&info);
 
     char* pid = NULL;
     char* cmdline = NULL;
     unsigned int proc_number = 0;
+    unsigned int used_proc = 0;
     unsigned long memused = 0;
     int mempercent = 0;
 
@@ -116,16 +127,17 @@ void refresh(GtkWidget* grid, proc* array, unsigned int used_proc) {
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
     filter_proc(array, &proc_number, &used_proc);
 
-    // Clear the grid before repopulating
-    GtkWidget *child;
-    GList *children, *l;
-    children = gtk_container_get_children(GTK_CONTAINER(grid));
-    for (int i = proc_number * 5; i >= 0; i--) {
-        child = GTK_WIDGET(children->data);
+    // get all the elements of the grid
+    GList *children = gtk_container_get_children(GTK_CONTAINER(grid));
+    // iterate through the list of elements until none is left
+    for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
+        // destroy all of the elements in the grid
+        GtkWidget *child = GTK_WIDGET(iter->data);
         gtk_widget_destroy(child);
     }
     g_list_free(children);
 
+    printf("In refresh- used proc: %u, proc_number: %u\n", used_proc, proc_number);
     populate_grid(grid, array, used_proc);
 
     pthread_mutex_unlock(&mutex);
