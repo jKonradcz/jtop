@@ -132,28 +132,28 @@ int gui_main (gui_size* gui_size_var) {
 void kill_proc (GtkWidget* widget, gpointer pid) {
     unsigned int pid_to_kill = (unsigned int)(uintptr_t) pid; // this took me unreasonably long to figure out, there is not reason why it should be necessary, but compiler think otherwise, uintptr_r just in case the size would vary 
     char killmessage[256];
-    snprintf(killmessage, sizeof(killmessage), "kill %u", pid_to_kill);
+    snprintf (killmessage, sizeof (killmessage), "kill %u", pid_to_kill);
     system (killmessage);
 
 }
 // TODO: function to populate the window / grid with data
-void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
+void populate_grid (GtkWidget* grid, proc* array, unsigned int used_proc) {
     char buffer[256];    
     // loop through the array of processes
         for (int i = 0; i < used_proc; i++) {
         // debug comment- printf("PID: %u, proc: %s\n", array[i].pid, array[i].cmdline);        
-        snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
+        snprintf(buffer, sizeof (buffer), "%u", array[i].pid);
         GtkWidget *pid = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), pid, 0, i+1, 1, 1);
 
         GtkWidget *proc = gtk_label_new (array[i].cmdline);
         gtk_grid_attach (GTK_GRID (grid), proc, 1, i+1, 1, 1);
 
-        snprintf(buffer, sizeof(buffer), "%lu", array[i].mem);
+        snprintf(buffer, sizeof (buffer), "%lu", array[i].mem);
         GtkWidget *mem = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), mem, 2, i+1, 1, 1);
 
-        snprintf(buffer, sizeof(buffer), "%.2f%%", array[i].mempercent);
+        snprintf(buffer, sizeof (buffer), "%.2f%%", array[i].mempercent);
         GtkWidget *mempercent = gtk_label_new (buffer);
         gtk_grid_attach (GTK_GRID (grid), mempercent, 3, i+1, 1, 1);
         
