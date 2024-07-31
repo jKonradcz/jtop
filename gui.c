@@ -15,14 +15,34 @@ static void activate(GtkApplication* app, gpointer size) {
     // set the window default size, this is calculated in main.c and handed over in the gui_size struct
     gtk_window_set_default_size(GTK_WINDOW(window), gui_size_var->width, gui_size_var->height +1); // +1 for the footer/ refresh
 
-    // create the grid
+    // create a box to fit other elements into
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    // attach the box into the window
+    gtk_container_add(GTK_CONTAINER(window), box);
+
+    // create the header
+    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(box), header, FALSE, TRUE, 0);
+
+    // create scrollable window including the data
+    GtkWindow *proc_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_box_pack_start(GTK_BOX(box), proc_window, TRUE, TRUE, 0);
+
+    // create the grid and add it to the scrollable window
     GtkWidget *grid = gtk_grid_new();
+    // set the scroll bar (where, horizontal, vertical)
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), data_grid);
     // set the grid size
     gtk_grid_set_row_spacing(GTK_GRID(grid), 20);
     gtk_grid_set_column_spacing(GTK_GRID(grid), gui_size_var->width / 5);
-    // attach the grid to the window
-    gtk_container_add(GTK_CONTAINER(window), grid);
+    
+    // create the footer
+    GtkWidget *footer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), footer, FALSE, FALSE, 0);
+
     // create labels for the header
+    /*
     GtkWidget *header_pid = gtk_label_new("PID");
     GtkWidget *header_proc = gtk_label_new("Process");
     GtkWidget *header_mem = gtk_label_new("Memory used");
@@ -38,7 +58,8 @@ static void activate(GtkApplication* app, gpointer size) {
     // add the footer and refresh button
     GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_grid_attach(GTK_GRID(grid), footer_box, 0, gui_size_var->used_proc + 1, 5, 1);
-    
+    */
+   
     // add the refresh button
     GtkWidget *refreshbutton = gtk_button_new_with_label("Refresh");
     // combine the array and grid in a new struct to hand over to the refresh
