@@ -11,8 +11,13 @@
 #include <gtk/gtk.h>        // for the UI   
 #include <pthread.h>        // for the threads
 
+<<<<<<< Updated upstream
 #define window_width 600      // width of the line in the GUI
 #define line_height 20      // height of the line in the GUI
+=======
+#define window_width 400    // width of the line in the GUI
+#define line_height 15     // height of the line in the GUI
+>>>>>>> Stashed changes
 
 
     // struct to hold all the proc info

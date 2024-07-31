@@ -63,6 +63,11 @@ int main(int argc, char **argv) {
     gui_size_var.used_proc = used_proc;
     gui_size_var.array = array;
 
+<<<<<<< Updated upstream
+=======
+    printf("In main- used proc: %u, height: %u\n", used_proc, gui_size_var.height);
+
+>>>>>>> Stashed changes
     // create the GUI thread
     // debugging comment- printf("Pre-thread print from main, PID: %u, proc: %s, mempercent: %.2f%%\n", array[0].pid, array[0].cmdline, array[0].mempercent);
     
