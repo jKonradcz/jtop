@@ -33,6 +33,7 @@ typedef struct {
 
 typedef struct {
     GtkWidget *grid;
+    GtkWidget *window;
     proc *array;
 } refreshd;
 

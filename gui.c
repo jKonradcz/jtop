@@ -2,6 +2,8 @@
 // taken from docs.gtk.org/gtk3/getting_started.html
 // compile with 'gcc `pkg-config --cflags gtk+-3.0` -o gui gui.c `pkg-config --libs gtk+-3.0`'
 
+int pop_counter = 0;
+
 extern pthread_mutex_t mutex;
 
 static void activate(GtkApplication* app, gpointer size) {
@@ -54,12 +56,12 @@ static void activate(GtkApplication* app, gpointer size) {
     gtk_box_pack_start(GTK_BOX(header), header_mempercent, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(header), header_killbutton, FALSE, TRUE, 0);
     
-   
     // add the refresh button
     GtkWidget *refreshbutton = gtk_button_new_with_label("Refresh");
     // combine the array and grid in a new struct to hand over to the refresh
     refreshd *refresh_data = g_malloc(sizeof(refreshd));
     refresh_data->grid = grid;
+    refresh_data->window = window;
     refresh_data->array = gui_size_var->array;
     
     g_signal_connect(refreshbutton, "clicked", G_CALLBACK(refresh), refresh_data);
@@ -94,9 +96,15 @@ void kill_proc(GtkWidget* widget, gpointer pid) {
 }
 // function to populate the window / grid with data
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
+    pop_counter++;
+    printf("In populate- used proc: %u\n", used_proc);
     char buffer[256];    
     // loop through the array of processes
     for (int i = 0; i < used_proc; i++) {
+
+    if (pop_counter == 2) {
+        printf("Populating PID n: %u\n", array[i].pid);
+    }
     
     snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
     GtkWidget *pid = gtk_label_new(buffer);
@@ -124,6 +132,7 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
 void refresh(GtkWidget* widget, gpointer refresh_data) {
     refreshd *data = (refreshd *)refresh_data;
     GtkWidget *grid = data->grid;
+    GtkWidget *window = data->window;
     proc *array = data->array;
 
     pthread_mutex_lock(&mutex);
@@ -138,12 +147,7 @@ void refresh(GtkWidget* widget, gpointer refresh_data) {
     unsigned long memused = 0;
     int mempercent = 0;
 
-    gather_proc_info(info, pid, &array, &proc_number, cmdline);
-    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
-    calc_mem(&mempercent, &memused, info, &array, &proc_number);
-    filter_proc(array, &proc_number, &used_proc);
-
-    // get all the elements of the grid
+        // get all the elements of the grid
     GList *children = gtk_container_get_children(GTK_CONTAINER(grid));
     // iterate through the list of elements until none is left
     for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
@@ -153,8 +157,16 @@ void refresh(GtkWidget* widget, gpointer refresh_data) {
     }
     g_list_free(children);
 
+    gather_proc_info(info, pid, &array, &proc_number, cmdline);
+    qsort(array, proc_number, sizeof(proc), compare_proc_by_mem);
+    calc_mem(&mempercent, &memused, info, &array, &proc_number);
+    filter_proc(array, &proc_number, &used_proc);
+
     printf("In refresh- used proc: %u, proc_number: %u\n", used_proc, proc_number);
+
     populate_grid(grid, array, used_proc);
+
+    gtk_widget_show_all(window);
 
     pthread_mutex_unlock(&mutex);
 }
