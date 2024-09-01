@@ -15,7 +15,14 @@ static void activate(GtkApplication* app, gpointer size) {
     // set the window title
     gtk_window_set_title(GTK_WINDOW(window), "jTOP");
     // set the window default size, this is calculated in main.c and handed over in the gui_size struct
-    gtk_window_set_default_size(GTK_WINDOW(window), gui_size_var->width, gui_size_var->height); // +1 for the footer/ refresh
+    gtk_window_set_default_size(GTK_WINDOW(window), gui_size_var->width, gui_size_var->height); 
+
+    // GdkGeometry to set minimum=maximum size for the horizontal size
+    GdkGeometry limits;
+
+    limits.min_width = gui_size_var->width;
+    limits.max_width = gui_size_var->width;
+    gtk_window_set_geometry_hints(GTK_WINDOW(window), NULL, &limits, GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE);    
 
     // create a box to fit other elements into
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -23,7 +30,7 @@ static void activate(GtkApplication* app, gpointer size) {
 
     // create the header
     GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
-    gtk_box_pack_start(GTK_BOX(box), header, FALSE, TRUE, 12);
+    gtk_box_pack_start(GTK_BOX(box), header, FALSE, FALSE, 0);
 
     // create scrollable window including the data
     GtkWidget *proc_window = gtk_scrolled_window_new(NULL, NULL);
@@ -97,15 +104,16 @@ void kill_proc(GtkWidget* widget, gpointer pid) {
 // function to populate the window / grid with data
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     pop_counter++;
-    printf("In populate- used proc: %u\n", used_proc);
+    // printf("In populate- used proc: %u\n", used_proc);
     char buffer[256];    
     // loop through the array of processes
     for (int i = 0; i < used_proc; i++) {
-
+    /*
     if (pop_counter == 2) {
         printf("Populating PID n: %u\n", array[i].pid);
     }
-    
+    */
+
     snprintf(buffer, sizeof(buffer), "%u", array[i].pid);
     GtkWidget *pid = gtk_label_new(buffer);
     gtk_grid_attach(GTK_GRID(grid), pid, 0, i+1, 1, 1);
@@ -162,7 +170,7 @@ void refresh(GtkWidget* widget, gpointer refresh_data) {
     calc_mem(&mempercent, &memused, info, &array, &proc_number);
     filter_proc(array, &proc_number, &used_proc);
 
-    printf("In refresh- used proc: %u, proc_number: %u\n", used_proc, proc_number);
+    // printf("In refresh- used proc: %u, proc_number: %u\n", used_proc, proc_number);
 
     populate_grid(grid, array, used_proc);
 

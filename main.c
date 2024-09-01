@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     gui_size_var.used_proc = used_proc;
     gui_size_var.array = array;
 
-    printf("In main- used proc: %u, proc_number: %u\n", used_proc, proc_number);
+    // printf("In main- used proc: %u, proc_number: %u\n", used_proc, proc_number);
 
     // create the GUI thread
     pthread_t gui_thread;
