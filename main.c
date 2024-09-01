@@ -63,7 +63,6 @@ int compare_proc_by_mem(const void* a, const void* b) {
     proc* proc_a = (proc*)a;
     proc* proc_b = (proc*)b;
     // comparison itself, with the return values -1 and 1 or 0 if equal
-    // reverted the order, as I want the largest procs first
     if (proc_a->mem > proc_b->mem) {
         return -1;
     }
@@ -125,25 +124,10 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 getline(&cmdline, &cmdline_buffer, cmdline_file);
                 fclose(cmdline_file);
 
-                // find the end of the path and remove the rest (arguments etc) 
-                // changed from ' ' to '-' as the emulated paths had spaces in them
-                /*
-                for (char* c = cmdline; *c != '\0'; c++) {
-                    if (*c == '-') {
-                        *c = '\0';
-                        break;
-                    }
-                } */
                 cmdline[strcspn(cmdline, "-")] = '\0';
-
 
                 // we are done with the cmdline, free the path
                 free(procpath);
-
-                // enter the cmdline info into the proc, free the cmdline buffer
-                // (*array)[*proc_number].cmdline = cmdline;
-                // free(cmdline);
-                // cmdline = NULL;
 
                 // load the statm path (this could be simplified by providing both cmdline & statm as arguments, but will do for now)
                 size = snprintf(NULL, 0, "/proc/%s/statm", pid);
@@ -171,9 +155,10 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 // convert the memory usage to bytes
                 memuse = (memuse * pagesize); 
                 
-
                 // calculate the percentage of memory used by the process
                 float mempercent = (memuse * 100) / (float)(info.totalram * info.mem_unit); // mem_unit to potentialy convert to bytes
+
+                // memuse = (memuse * info.mem_unit); 
 
                 // check if there is space in the array
                 if (*proc_number == array_size) {
@@ -185,14 +170,11 @@ int gather_proc_info(struct sysinfo info, char* pid, proc** array, unsigned int*
                 // add the proc values to the struct and array
                 (*array)[*proc_number].pid = atoi(pid);
                 (*array)[*proc_number].cmdline = strdup(cmdline);
-                // (*array)[*proc_number].cmdline = "bruh";
                 (*array)[*proc_number].mem = memuse;
                 (*array)[*proc_number].mempercent = mempercent;
 
                 (*proc_number)++;
                 
-                // debuging at the end of each loop
-                // printf("Proc number: %u, memused: %f\n", *proc_number, memuse);
 
                 break;
             }

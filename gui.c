@@ -52,14 +52,14 @@ static void activate(GtkApplication* app, gpointer size) {
     // create labels for the header
     GtkWidget *header_pid = gtk_label_new("PID");
     GtkWidget *header_proc = gtk_label_new("Process");
-    GtkWidget *header_mem = gtk_label_new("Memory used");
+    // GtkWidget *header_mem = gtk_label_new("Memory used");
     GtkWidget *header_mempercent = gtk_label_new("Memory %");
     GtkWidget *header_killbutton = gtk_label_new("Kill");
 
     // attach the headers to their positions (numeric values are 1. collumn, 2. row, 3. width, 4. height)
     gtk_box_pack_start(GTK_BOX(header), header_pid, FALSE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(header), header_proc, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(header), header_mem, FALSE, TRUE, 0);
+    // gtk_box_pack_start(GTK_BOX(header), header_mem, FALSE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(header), header_mempercent, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(header), header_killbutton, FALSE, TRUE, 0);
     
@@ -104,6 +104,7 @@ void kill_proc(GtkWidget* widget, gpointer pid) {
 // function to populate the window / grid with data
 void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
     pop_counter++;
+    char* ui_mem = NULL;
     // printf("In populate- used proc: %u\n", used_proc);
     char buffer[256];    
     // loop through the array of processes
@@ -120,11 +121,22 @@ void populate_grid(GtkWidget* grid, proc* array, unsigned int used_proc) {
 
     GtkWidget *proc = gtk_label_new(array[i].cmdline);
     gtk_grid_attach(GTK_GRID(grid), proc, 1, i+1, 1, 1);
-
-    snprintf(buffer, sizeof(buffer), "%lu", array[i].mem);
+    /*
+    ui_mem = malloc(sizeof(array[i].mem) * 4 + 3); // make space for the number into a string, extra for unit and escape char
+    // calc the memory and add adequate unit
+    if (array[i].mem > 1024 * 1024) {
+        array[i].mem /= 1024 * 1024;
+        sprintf(ui_mem, "%luM", array[i].mem);
+    } else if (array[i].mem > 1024) {
+        array[i].mem /= 1024;
+        sprintf(ui_mem, "%luK", array[i].mem);
+    } else {
+        sprintf(ui_mem, "%lu", array[i].mem);
+    }
+    snprintf(buffer, sizeof(buffer), "%s", ui_mem);
     GtkWidget *mem = gtk_label_new(buffer);
     gtk_grid_attach(GTK_GRID(grid), mem, 2, i+1, 1, 1);
-
+    */
     snprintf(buffer, sizeof(buffer), "%.2f%%", array[i].mempercent);
     GtkWidget *mempercent = gtk_label_new(buffer);
     gtk_grid_attach(GTK_GRID(grid), mempercent, 3, i+1, 1, 1);

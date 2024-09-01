@@ -31,6 +31,7 @@ typedef struct {
     proc* array;
 } gui_size;
 
+    // struct to hold data for the refresh fn
 typedef struct {
     GtkWidget *grid;
     GtkWidget *window;
